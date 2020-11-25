@@ -41,7 +41,7 @@ class TestDiscussion11(unittest.TestCase):
 def main():
     # CO2 emission in the US in 2014 (tons per capita)
     # print("-----Population-----")
-    # country = "JPN"
+    # country = "JPN" !
     # year = "2014"
     # value1 = population_year(country, year)
     # print("The population in {} in {} is {}".format(country, year, value1))
