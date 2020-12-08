@@ -18,7 +18,7 @@ def get_data(city, state):
     except:
         print("error when reading from url")
         dic = []
-    #print(dic)
+    print(dic)
     return dic
 
 def get_data_2(city):
@@ -36,11 +36,11 @@ def get_website_data(url):
     # d = {}
     L = []
     r = requests.get(url)
-    soup = BeautifulSoup(r.text, "html.parser") #lxml
+    soup = BeautifulSoup(r.text, "lxml") #lxml
     x = soup.find_all(class_ = "cardhub-edu-table center-aligned sortable")
     for i in x:
         name = i.find_all("tr")
-        for j in name[:25]:
+        for j in name:
             n = j.text
             L.append(n)
     print(L)
@@ -52,22 +52,60 @@ def setUpDatabase(db_name):
     cur = conn.cursor()
     return cur, conn
 
-def database(data, cur, conn):
+def set_up_tables(cur, conn):
+    cur.execute("CREATE TABLE IF NOT EXISTS Weather (city_id INTEGER PRIMARY KEY, city TEXT, state TEXT, temp INTEGER)")
+    cur.execute("CREATE TABLE IF NOT EXISTS Scores (city_id INTEGER PRIMARY KEY, city TEXT, HousingScore INTEGER, CostOfLivingScore INTEGER)")
+    conn.commit()
+
+def fill_weather_table(cur, conn):
     # cur, conn = setUpDatabase('weather_data.db')
     # conn = sqlite3.connect("weather_data.db")
     # cur = conn.cursor()
     #cur.execute("DROP TABLE IF EXISTS Weather")
-    cur.execute("CREATE TABLE IF NOT EXISTS Weather (city TEXT PRIMARY KEY UNIQUE, state TEXT, temp INTEGER)")
-    cur.execute("INSERT INTO Weather (city, state, temp) VALUES (?,?,?)", (data['data']['city'], data['data']['state'], data['data']['current']['weather']['tp']))
+    #cur.execute("CREATE TABLE IF NOT EXISTS Weather (city_id INTEGER PRIMARY KEY, city TEXT, state TEXT, temp INTEGER)")
+    city_state_list = [("anchorage", "Alaska"), ("asheville", "North Carolina"), ("atlanta", "Georgia"), ("austin", "Texas"), 
+        ("birmingham", "Alabama"), ("boise", "Idaho"), ("buffalo", "New York"), ("charleston", "South Carolina"),
+        ("chattanooga", "Tennessee"), ("chicago", "Illinois"), ("cincinnati", "Ohio"), ("cleveland", "Ohio"),
+        ("colorado springs", "Colorado"), ("columbus", "Ohio"), ("dallas", "Texas"), ("denver", "Colorado"),
+        ("detroit", "Michigan"), ("honolulu", "Hawaii"), ("houston", "Texas"), ("indianapolis", "Indiana"), 
+        ("jacksonville", "Florida"), ("kansas city", "Kansas"), ("knoxville", "Tennessee"), ("las vegas", "Nevada"),
+        ("memphis", "Tennessee"), ("miami", "Florida"), ("milwaukee", "Wisconsin"), ("nashville", "Tennessee"),
+        ("new orleans", "Louisiana"), ("oklahoma-city", "Oklahoma"),("omaha", "Nebraska"), ("orlando", "Florida"),
+        ("philadelphia", "Pennsylvania"), ("phoenix", "Arizona"), ("pittsburgh", "Pennsylvania"), 
+        ("providence", "Rhode Island"), ("raleigh", "North Carolina"), ("richmond", "Virginia"),
+        ("rochester", "Minnesota"), ("salt-lake-city", "Utah"), ("san-antonio", "Texas"), ("san diego", "California"),
+        ("seattle", "Washington"), ("st louis", "Missouri")]
+    
+    list_of_dics = []
+    for tup in city_state_list:
+        list_of_dics.append(get_data(tup[0], tup[1]))
+
+    cur.execute('SELECT city FROM Weather')
+    city_list = cur.fetchall()
+
+    x = 1
+    count = len(city_list)
+
+    for x in range(8):
+        x = count
+        city_id = count + 1
+        city = list_of_dics[count]['data']['city']
+        state = list_of_dics[count]['data']['state']
+        temp = list_of_dics[count]['data']['current']['weather']['tp']
+
+        x += 1
+        cur.execute("INSERT OR IGNORE INTO Weather (city_id, city, state, temp) VALUES (?,?,?,?)", (city_id, city, state, temp))
+        count += 1
+
     conn.commit()
 
 def database2(data, cur, conn):
     #cur.execute("DROP TABLE IF EXISTS Scores")
-    cur.execute("CREATE TABLE IF NOT EXISTS Scores (city TEXT PRIMARY KEY UNIQUE, HousingScore INTEGER, CostOfLivingScore INTEGER)")
-    cur.execute("INSERT INTO Scores (city, HousingScore, CostOfLivingScore) VALUES (?,?,?)", (data['summary'].split(",")[0][3:], data['categories'][0]['score_out_of_10'], data['categories'][1]['score_out_of_10']))
+    #cur.execute("CREATE TABLE IF NOT EXISTS Scores (city_id INTEGER PRIMARY KEY, city TEXT, HousingScore INTEGER, CostOfLivingScore INTEGER)")
+    cur.execute("INSERT OR IGNORE INTO Scores (city_id, city, HousingScore, CostOfLivingScore) VALUES (?,?,?,?)", (data['summary'].split(",")[0][3:], data['categories'][0]['score_out_of_10'], data['categories'][1]['score_out_of_10']))
     conn.commit()
 
-class TestDiscussion11(unittest.TestCase):
+class TestWeatherAPI(unittest.TestCase):
     def test_check_data(self):
         data1 = get_data("Los Angeles", "California")
         data2 = get_data("Madison", "Wisconsin")
@@ -92,15 +130,39 @@ def main():
     # cur, conn = setUpDatabase('weather_data.db')
     conn = sqlite3.connect("weather_data.db")
     cur = conn.cursor()
-    L2 = ["anchorage", "asheville", "atlanta", "austin", "birmingham", "boise", "boston", "buffalo", "charleston", 
+    set_up_tables(cur, conn)
+
+    L = [("anchorage", "Alaska"), ("asheville", "North Carolina"), ("atlanta", "Georgia"), ("austin", "Texas"), 
+        ("birmingham", "Alabama"), ("boise", "Idaho"), ("buffalo", "New York"), ("charleston", "South Carolina"),
+        ("chattanooga", "Tennessee"), ("chicago", "Illinois"), ("cincinnati", "Ohio"), ("cleveland", "Ohio"),
+        ("colorado springs", "Colorado"), ("columbus", "Ohio"), ("dallas", "Texas"), ("denver", "Colorado"),
+        ("detroit", "Michigan"), ("honolulu", "Hawaii"), ("houston", "Texas"), ("indianapolis", "Indiana"), 
+        ("jacksonville", "Florida"), ("kansas city", "Kansas"), ("knoxville", "Tennessee"), ("las vegas", "Nevada"),
+        ("memphis", "Tennessee"), ("miami", "Florida"), ("milwaukee", "Wisconsin"), ("nashville", "Tennessee"),
+        ("new orleans", "Louisiana"), ("oklahoma-city", "Oklahoma"),("omaha", "Nebraska"), ("orlando", "Florida"),
+        ("philadelphia", "Pennsylvania"), ("phoenix", "Arizona"), ("pittsburgh", "Pennsylvania"), 
+        ("providence", "Rhode Island"), ("raleigh", "North Carolina"), ("richmond", "Virginia"),
+        ("rochester", "Minnesota"), ("salt-lake-city", "Utah"), ("san-antonio", "Texas"), ("san diego", "California"),
+        ("seattle", "Washington"), ("st louis", "Missouri")]
+
+    L2 = ["anchorage", "asheville", "atlanta", "austin", "birmingham", "boise", "buffalo", "charleston", 
             "chattanooga", "chicago", "cincinnati", "cleveland", "colorado-springs", "columbus", "dallas", "denver",
             "detroit", "honolulu", "houston", "indianapolis", "jacksonville", "kansas-city", "knoxville", "las-vegas",
-            "los-angeles", "memphis", "miami", "milwaukee", "nashville", "new-orleans", "new-york", "oklahoma-city",
+            "memphis", "miami", "milwaukee", "nashville", "new-orleans", "oklahoma-city",
             "omaha", "orlando", "philadelphia", "phoenix", "pittsburgh", "providence", "raleigh", "richmond",
             "rochester", "salt-lake-city", "san-antonio", "san-diego", "seattle", "st-louis"]
-    database(get_data("Los Angeles", "California"), cur, conn)
-    for city in L2:
-        database2(get_data_2(city), cur, conn)
+    
+    #database(get_data("Los Angeles", "California"), cur, conn)
+    #database(get_data("colorado springs", "Colorado"), cur, conn)
+    #database(get_data("kansas-city", "Kansas"), cur, conn)
+    # for tup in L:
+    #     fill_weather_table(get_data(tup[0], tup[1]), cur, conn)
+
+    fill_weather_table(cur, conn)
+
+    # for city in L2:
+    #     database2(get_data_2(city), cur, conn)
+
     print("------------")
 
     unittest.main(verbosity=2) #put this last
