@@ -8,7 +8,7 @@ from bs4 import BeautifulSoup
 #Testing git pull - do you see this comment?
 
 # test 2 - hi jade
-API_KEY = "91c93e9c-1957-45b7-bdf5-c7b51881a029"
+API_KEY = "b833a42c-9fec-403b-9a8c-b954f59a03b0"
 def get_data(city, state):
     try:
         base_url = "http://api.airvisual.com/v2/city?city={}&state={}&country=USA&key={}"
@@ -30,16 +30,22 @@ def get_data_2(city):
     return dic
 
 def get_website_data(url):
-    # d = {}
+
     L = []
-    r = requests.get(url)
-    soup = BeautifulSoup(r.text, "lxml") #lxml
-    x = soup.find_all(class_ = "cardhub-edu-table center-aligned sortable")
-    for i in x:
-        name = i.find_all("tr")
-        for j in name:
-            n = j.text
-            L.append(n)
+    r = requests.get(url).text
+    soup = BeautifulSoup(r, 'html.parser') #lxml
+    #x = soup.find_all(class_ = "wikitable sortable jquery-tablesorter")
+    x = soup.find('table', {'class':'wikitable sortable'})
+    links = x.find_all('a')
+    for i in links:
+        if i.get('title') == None:
+            continue
+        else:
+            L.append(i.get('title'))
+        # name = i.find_all("title")
+        # for j in name:
+        #     n = j.text
+        #     L.append(n)
     print(L)
     return L
 
@@ -50,6 +56,8 @@ def setUpDatabase(db_name):
     return cur, conn
 
 def set_up_tables(cur, conn):
+    # cur.execute("DROP TABLE IF EXISTS Weather")
+    # cur.execute("DROP TABLE IF EXISTS Scores")
     cur.execute("CREATE TABLE IF NOT EXISTS Weather (city_id INTEGER PRIMARY KEY, city TEXT, state TEXT, temp INTEGER)")
     cur.execute("CREATE TABLE IF NOT EXISTS Scores (city_id INTEGER PRIMARY KEY, city TEXT, HousingScore INTEGER, CostOfLivingScore INTEGER)")
     conn.commit()
@@ -58,7 +66,7 @@ def fill_weather_table(cur, conn):
     # cur, conn = setUpDatabase('weather_data.db')
     # conn = sqlite3.connect("weather_data.db")
     # cur = conn.cursor()
-    #cur.execute("DROP TABLE IF EXISTS Weather")
+
     #cur.execute("CREATE TABLE IF NOT EXISTS Weather (city_id INTEGER PRIMARY KEY, city TEXT, state TEXT, temp INTEGER)")
     city_state_list = [("anchorage", "Alaska"), ("asheville", "North Carolina"), ("atlanta", "Georgia"), ("austin", "Texas"), 
         ("birmingham", "Alabama"), ("boise", "Idaho"), ("buffalo", "New York"), ("charleston", "South Carolina"),
@@ -83,7 +91,7 @@ def fill_weather_table(cur, conn):
     x = 1
     count = len(city_list)
 
-    for x in range(8):
+    for x in range(10):
         x = count
         city_id = count + 1
         city = list_of_dics[count]['data']['city']
@@ -97,14 +105,20 @@ def fill_weather_table(cur, conn):
     conn.commit()
 
 def fill_scores_table(cur, conn):
-    #cur.execute("DROP TABLE IF EXISTS Scores")
     #cur.execute("CREATE TABLE IF NOT EXISTS Scores (city_id INTEGER PRIMARY KEY, city TEXT, HousingScore INTEGER, CostOfLivingScore INTEGER)")
     cities = ["anchorage", "asheville", "atlanta", "austin", "birmingham", "boise", "buffalo", "charleston", 
             "chattanooga", "chicago", "cincinnati", "cleveland", "colorado-springs", "columbus", "dallas", "denver",
             "detroit", "honolulu", "houston", "indianapolis", "jacksonville", "kansas-city", "knoxville", "las-vegas",
             "memphis", "miami", "milwaukee", "nashville", "new-orleans", "oklahoma-city",
-            "omaha", "orlando", "philadelphia", "phoenix", "pittsburgh", "providence", "raleigh", "richmond",
-            "rochester", "salt-lake-city", "san-antonio", "san-diego", "seattle", "st-louis"]
+            "omaha", "orlando", "philadelphia", "phoenix", "pittsburgh", "portland-me", "portland-or", "providence", "raleigh", "richmond",
+            "rochester", "salt-lake-city", "san-antonio", "san-diego", "seattle", "st-louis", "amsterdam", "athens",
+            "bangkok", "barcelona", "beijing", "berlin", "brisbane", "brussels", "budapest", "cairo", "cambridge",
+            "casablanca", "cologne", "copenhagen", "delhi", "dubai", "dublin", "edinburgh", "edmonton", "florence",
+            "geneva", "gibraltar", "glasgow", "guadalajara", "guatemala-city", "hamburg", "havana", "helsinki",
+            "hong-kong", "istanbul", "jakarta", "kiev", "krakow", "kyoto", "lagos", "leeds", "leipzig", "lima", "lisbon",
+            "liverpool", "london", "luxembourg", "lyon", "madrid", "malaga", "manchester", "manila", "marseille", "melbourne",
+            "mexico-city", "milan", "montreal", "moscow", "mumbai", "nairobi", "naples", "nice", "ottawa", "seoul",
+             "shanghai", "singapore", "sydney"]
 
     list_of_dics = []
     for city in cities:
@@ -116,7 +130,7 @@ def fill_scores_table(cur, conn):
     x = 1
     count = len(city_list)
 
-    for x in range(8):
+    for x in range(10):
         x = count
         city_id = count + 1
         city = list_of_dics[count]['summary'].split(",")[0][3:]
@@ -139,7 +153,8 @@ class TestWeatherAPI(unittest.TestCase):
 
 class TestWebsiteData(unittest.TestCase):
     def test_website_data(self):
-        data = get_website_data("https://wallethub.com/edu/happiest-places-to-live/32619")
+        data = get_website_data("https://en.wikipedia.org/wiki/List_of_United_States_cities_by_population")
+        print(data)
 
 def main():
 
@@ -150,9 +165,10 @@ def main():
     cur = conn.cursor()
     set_up_tables(cur, conn)
     
-
     #fill_weather_table(cur, conn)
-    fill_scores_table(cur, conn)
+    #fill_scores_table(cur, conn)
+
+    print(get_website_data("https://en.wikipedia.org/wiki/List_of_United_States_cities_by_population"))
 
     print("------------")
 
