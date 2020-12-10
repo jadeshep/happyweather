@@ -4,10 +4,9 @@ import requests
 import json
 import os
 from bs4 import BeautifulSoup
+import time
+import re
 
-#Testing git pull - do you see this comment?
-
-# test 2 - hi jade
 API_KEY = "b833a42c-9fec-403b-9a8c-b954f59a03b0"
 def get_data(city, state):
     try:
@@ -29,25 +28,43 @@ def get_data_2(city):
     # print(dic)
     return dic
 
-def get_website_data(url):
+def get_city_website_data(url):
 
-    L = []
+    L1 = []
+    L2 = []
+    pattern = r't">([A-Za-z\s\.\-]*)<\/d'
     r = requests.get(url).text
     soup = BeautifulSoup(r, 'html.parser') #lxml
-    #x = soup.find_all(class_ = "wikitable sortable jquery-tablesorter")
-    x = soup.find('table', {'class':'wikitable sortable'})
-    links = x.find_all('a')
+    x = soup.find('table', {'class':'goodOlTxt content'})
+    links = x.find_all('tr')
     for i in links:
-        if i.get('title') == None:
-            continue
-        else:
-            L.append(i.get('title'))
-        # name = i.find_all("title")
-        # for j in name:
-        #     n = j.text
-        #     L.append(n)
-    print(L)
-    return L
+        y = i.find('td', {'class':'numbers'})
+        L1.append(str(y))
+    for item in L1:
+        name = re.findall(pattern, item)
+        for n in name:
+            L2.append(n)
+    L2.insert(0, 'New York')
+    return L2
+
+def get_pop_website_data(url):
+    L1 = []
+    L2 = []
+    pattern = r'r">([\S]*)<\/d'
+    r = requests.get(url).text
+    soup = BeautifulSoup(r, 'html.parser') #lxml
+    x = soup.find('table', {'class':'goodOlTxt content'})
+    links = x.find_all('tr')
+    for i in links:
+        y = i.find_all('td', {'class':'numbers'})
+        L1.append(str(y))
+    for item in L1:
+        nums = re.findall(pattern, item)
+        for num in nums:
+            L2.append(num)
+    L2[0] = '8,622,698'
+    return(L2)
+
 
 def setUpDatabase(db_name):
     path = os.path.dirname(os.path.abspath(__file__))
@@ -58,8 +75,10 @@ def setUpDatabase(db_name):
 def set_up_tables(cur, conn):
     # cur.execute("DROP TABLE IF EXISTS Weather")
     # cur.execute("DROP TABLE IF EXISTS Scores")
+    # cur.execute("DROP TABLE IF EXISTS Population")
     cur.execute("CREATE TABLE IF NOT EXISTS Weather (city_id INTEGER PRIMARY KEY, city TEXT, state TEXT, temp INTEGER)")
     cur.execute("CREATE TABLE IF NOT EXISTS Scores (city_id INTEGER PRIMARY KEY, city TEXT, HousingScore INTEGER, CostOfLivingScore INTEGER)")
+    cur.execute("CREATE TABLE IF NOT EXISTS Population (city_id INTEGER PRIMARY KEY, city TEXT, population INTEGER)")
     conn.commit()
 
 def fill_weather_table(cur, conn):
@@ -82,8 +101,12 @@ def fill_weather_table(cur, conn):
         ("seattle", "Washington"), ("st louis", "Missouri")]
     
     list_of_dics = []
+    num = 0
     for tup in city_state_list:
         list_of_dics.append(get_data(tup[0], tup[1]))
+        num += 1
+        if num == 10 or num ==15 or num == 20 or num == 25 or num == 30 or num == 35 or num == 40 or num == 50:
+            time.sleep(75)
 
     cur.execute('SELECT city FROM Weather')
     city_list = cur.fetchall()
@@ -91,7 +114,7 @@ def fill_weather_table(cur, conn):
     x = 1
     count = len(city_list)
 
-    for x in range(10):
+    for x in range(25):
         x = count
         city_id = count + 1
         city = list_of_dics[count]['data']['city']
@@ -143,6 +166,36 @@ def fill_scores_table(cur, conn):
 
     conn.commit()
 
+def fill_pop_table(cur, conn):
+
+    url = "https://www.baruch.cuny.edu/nycdata/world_cities/largest_cities-usa.htm"
+    L1 = get_city_website_data(url)
+    L2 = get_pop_website_data(url)
+
+    cur.execute('SELECT city FROM Population')
+    pop_list = cur.fetchall()
+
+    x = 1
+    count = len(pop_list)
+
+    for x in range(25):
+        x = count
+        city_id = count + 1
+        city = L1[count]
+        pop = L2[count]
+
+        x += 1
+        cur.execute("INSERT OR IGNORE INTO Population (city_id, city, population) VALUES (?,?,?)", (city_id, city, pop))
+        count += 1
+    
+    conn.commit()
+
+def join_tables(cur, conn):
+    cur.execute('SELECT Scores.city, Scores.HousingScore, Scores.CostOfLivingScore, Population.population FROM Scores INNER JOIN Population ON Scores.city = Population.city')
+    results = cur.fetchall()
+    conn.commit()
+    print(results)
+
 class TestWeatherAPI(unittest.TestCase):
     def test_check_data(self):
         data1 = get_data("Los Angeles", "California")
@@ -153,26 +206,24 @@ class TestWeatherAPI(unittest.TestCase):
 
 class TestWebsiteData(unittest.TestCase):
     def test_website_data(self):
-        data = get_website_data("https://en.wikipedia.org/wiki/List_of_United_States_cities_by_population")
-        print(data)
+        pass
 
 def main():
 
     # print("-----Unittest-------")
     
     # cur, conn = setUpDatabase('weather_data.db')
-    conn = sqlite3.connect("weather_data.db")
+    conn = sqlite3.connect("/Users/jadeshepherd/Desktop/SI 206/happyweather/weather_data.db")
     cur = conn.cursor()
     set_up_tables(cur, conn)
     
     #fill_weather_table(cur, conn)
     #fill_scores_table(cur, conn)
-
-    print(get_website_data("https://en.wikipedia.org/wiki/List_of_United_States_cities_by_population"))
+    #fill_pop_table(cur, conn)
+    join_tables(cur, conn)
 
     print("------------")
-
-    unittest.main(verbosity=2) #put this last
+    #unittest.main(verbosity=2) #put this last
 
 if __name__ == "__main__":
     main()
