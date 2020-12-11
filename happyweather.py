@@ -6,6 +6,7 @@ import os
 from bs4 import BeautifulSoup
 import time
 import re
+import statistics
 
 API_KEY = "e81c3fb0-2998-4139-8d32-7886f836d266"
 def get_data(city, state):
@@ -204,27 +205,60 @@ def fill_pop_table(cur, conn):
     
     conn.commit()
 
-def join_tables(cur, conn):
+def join_scores_and_pop(cur, conn):
     cur.execute('SELECT Scores.city, Scores.HousingScore, Scores.CostOfLivingScore, Population.population FROM Scores INNER JOIN Population ON Scores.city = Population.city')
     results = cur.fetchall()
     conn.commit()
     print(results)
+    return results
 
-class TestWeatherAPI(unittest.TestCase):
-    def test_check_data(self):
-        data1 = get_data("Los Angeles", "California")
-        data2 = get_data("Madison", "Wisconsin")
-        #self.assertEqual(type(data1), type([]))
-        #self.assertEqual(data1[0]['page'], 1)
-        #self.assertEqual(data1[1][0]['countryiso3code'], "BRA")
+def join_pop_and_weather(cur, conn):
+    cur.execute("SELECT Population.city, Population.population, Weather.temp FROM Population INNER JOIN Weather ON Population.city = Weather.city")
+    results = cur.fetchall()
+    conn.commit()
+    print(results)
+    return results
 
-class TestWebsiteData(unittest.TestCase):
-    def test_website_data(self):
-        pass
+def join_weather_and_scores(cur, conn):
+    cur.execute("SELECT Weather.city, Weather.temp, Scores.CostOfLivingScore FROM Weather INNER JOIN Scores ON Weather.city = Scores.city")
+    results = cur.fetchall()
+    conn.commit()
+    print(results)
+    return results
+
+def population_vs_housingscore_calc(cur, conn):
+    pops = []
+    housescores = []
+    tups = join_scores_and_pop(cur, conn)
+    for tup in tups:
+        pop = int(tup[3].replace(",", ""))
+        pops.append(pop)
+        housing = tup[1]
+        housescores.append(housing)
+    #calculate mean of pops
+    mean_pops = statistics.mean(pops)
+    print(mean_pops)
+    #calculating mean of housing scores
+    mean_housing = statistics.mean(housescores)
+    print(mean_housing)
+    return(mean_pops, mean_housing)
+
+
+def write_data_to_file(filename, cur, conn):
+    path = os.path.dirname(os.path.abspath(__file__)) + os.sep
+    outFile = open(path + filename, "w")
+    means = population_vs_housingscore_calc(cur, conn)
+    outFile.write("Average Population of US cities: ")
+    outFile.write(str(means[0]) + "\n")
+    outFile.write("=======================================================================\n\n")
+    outFile.write("Average Housing Score of US cities: ")
+    #need to specify that its only database cities?
+    outFile.write(str(means[1]) + "\n")
+    outFile.write("=======================================================================\n\n")
+    outFile.close()
+
 
 def main():
-
-    # print("-----Unittest-------")
     
     # cur, conn = setUpDatabase('weather_data.db')
     conn = sqlite3.connect("/Users/jadeshepherd/Desktop/SI 206/happyweather/weather_data.db")
@@ -234,8 +268,13 @@ def main():
     #fill_weather_table(cur, conn)
     #fill_scores_table(cur, conn)
     #fill_pop_table(cur, conn)
-    join_tables(cur, conn)
+    join_scores_and_pop(cur, conn)
+    join_pop_and_weather(cur, conn)
+    join_weather_and_scores(cur, conn)
 
+    population_vs_housingscore_calc(cur, conn)
+
+    write_data_to_file("pop_and_score.txt", cur, conn)
     print("------------")
     #unittest.main(verbosity=2) #put this last
 
