@@ -7,17 +7,18 @@ from bs4 import BeautifulSoup
 import time
 import re
 
-API_KEY = "b833a42c-9fec-403b-9a8c-b954f59a03b0"
+API_KEY = "e81c3fb0-2998-4139-8d32-7886f836d266"
 def get_data(city, state):
     try:
         base_url = "http://api.airvisual.com/v2/city?city={}&state={}&country=USA&key={}"
         request_url = base_url.format(city, state, API_KEY)
         r = requests.get(request_url)
-        dic = json.loads(r.text)
+        dic = r.json()
     except:
+        None
         print("error when reading from url")
         dic = []
-    #print(dic)
+    print(dic)
     return dic
 
 def get_data_2(city):
@@ -73,7 +74,7 @@ def setUpDatabase(db_name):
     return cur, conn
 
 def set_up_tables(cur, conn):
-    # cur.execute("DROP TABLE IF EXISTS Weather")
+    #cur.execute("DROP TABLE IF EXISTS Weather")
     # cur.execute("DROP TABLE IF EXISTS Scores")
     # cur.execute("DROP TABLE IF EXISTS Population")
     cur.execute("CREATE TABLE IF NOT EXISTS Weather (city_id INTEGER PRIMARY KEY, city TEXT, state TEXT, temp INTEGER)")
@@ -98,33 +99,44 @@ def fill_weather_table(cur, conn):
         ("philadelphia", "Pennsylvania"), ("phoenix", "Arizona"), ("pittsburgh", "Pennsylvania"), 
         ("providence", "Rhode Island"), ("raleigh", "North Carolina"), ("richmond", "Virginia"),
         ("rochester", "Minnesota"), ("salt-lake-city", "Utah"), ("san-antonio", "Texas"), ("san diego", "California"),
-        ("seattle", "Washington"), ("st louis", "Missouri")]
+        ("seattle", "Washington"), ("austin", "Texas"), ("charlotte", "North Carolina"), 
+        ("portland", "Oregon"), ("sacramento", "California"), ("oakland", "California"), ("tulsa", "Oklahoma"), 
+        ("lexington", "Kentucky"), ("henderson", "Nevada"), ("greensboro", "North Carolina"), ("newark", "New Jersey"), 
+        ("toledo", "Ohio"), ("laredo", "Texas"), ("madison", "Wisconsin"), ("scottsdale", "Arizona"), ("reno", "Nevada"), 
+        ("boston", "Massachusetts"), ("louisville", "Kentucky"), ("baltimore", "Maryland"), ("albequerque", "New Mexico"), 
+        ("tucson", "Arizona"), ("fresno", "California"), ("mesa", "Arizona"), ("minneapolis", "Minnesota"), ("arlington", "Texas"),
+        ("wichita", "Kansas"), ("bakersfield", "California"), ("aurora", "Colorado"), ("anaheim", "California"),
+        ("riverside", "California"), ("plano", "Texas"), ("durham", "North Carolina"), ("lubbock", "Texas"), ("chandlar", "Arizona"),
+        ("norfolk", "Virginia"), ("gilbert", "Arizona"), ("chesapeake", "Virginia"), ("irving", "Texas"), ("hialeah", "Florida"),
+        ("garland", "Texas"), ("fremont", "California"), ("spokane", "Washington"), ("tacoma", "Washington"), ("modesto", "California"),
+        ("oxnard", "California"), ("huntsville", "Alabama"), ("augusta", "Georgia"), ("amarillo", "Texas"), ("oceanside", "California"),
+        ("springfield", "Missouri"), ("lakewood", "Colorado"), ("hollywood", "Florida"), ("sunnyvale", "California"),
+        ("macon", "Georgia"), ("pasadena", "Texas"), ("naperville", "Illinois"), ("bellevue", "Washington"), ("savannah", "Georgia"),
+        ("syracuse", "New York"), ("denton", "Texas"), ("thorton", "Colorado")]
     
-    list_of_dics = []
-    num = 0
-    for tup in city_state_list:
-        list_of_dics.append(get_data(tup[0], tup[1]))
-        num += 1
-        if num == 10 or num ==15 or num == 20 or num == 25 or num == 30 or num == 35 or num == 40 or num == 50:
-            time.sleep(75)
+    cur.execute('SELECT max(city_id) FROM Weather')
+    city_id = cur.fetchone()[0]
+    if city_id == None:
+        city_id = 0
+    current_list = city_state_list[city_id:city_id + 25]
 
-    cur.execute('SELECT city FROM Weather')
-    city_list = cur.fetchall()
+    for city_tup in current_list:
+    
+        try:
+            city_data = get_data(city_tup[0], city_tup[1])
+            city = city_data['data']['city']
+            state = city_data['data']['state']
+            temp = city_data['data']['current']['weather']['tp']
+            
+            cur.execute("INSERT OR IGNORE INTO Weather (city_id, city, state, temp) VALUES (?,?,?,?)", (city_id, city, state, temp))
+            city_id += 1
+        except:
+            print("error")
+        time.sleep(10)
 
-    x = 1
-    count = len(city_list)
-
-    for x in range(25):
-        x = count
-        city_id = count + 1
-        city = list_of_dics[count]['data']['city']
-        state = list_of_dics[count]['data']['state']
-        temp = list_of_dics[count]['data']['current']['weather']['tp']
-
-        x += 1
-        cur.execute("INSERT OR IGNORE INTO Weather (city_id, city, state, temp) VALUES (?,?,?,?)", (city_id, city, state, temp))
-        count += 1
-
+        # x += 1
+        # cur.execute("INSERT OR IGNORE INTO Weather (city_id, city, state, temp) VALUES (?,?,?,?)", (city_id, city, state, temp))
+        # count += 1
     conn.commit()
 
 def fill_scores_table(cur, conn):
@@ -141,7 +153,9 @@ def fill_scores_table(cur, conn):
             "hong-kong", "istanbul", "jakarta", "kiev", "krakow", "kyoto", "lagos", "leeds", "leipzig", "lima", "lisbon",
             "liverpool", "london", "luxembourg", "lyon", "madrid", "malaga", "manchester", "manila", "marseille", "melbourne",
             "mexico-city", "milan", "montreal", "moscow", "mumbai", "nairobi", "naples", "nice", "ottawa", "seoul",
-             "shanghai", "singapore", "sydney"]
+             "shanghai", "singapore", "sydney", "toronto", "tokyo", "valencia", "vancouver", "vienna", "warsaw", "washington-dc", 
+             "winnipeg", "zurich", "tampa-bay-area", "seville", "ankara", "baku", "bern", "new-york", "nantes", "los-angeles",
+             "minsk", "oslo","perth", "oulu", "porto", "phuket"]
 
     list_of_dics = []
     for city in cities:
@@ -163,7 +177,7 @@ def fill_scores_table(cur, conn):
         x += 1
         cur.execute("INSERT OR IGNORE INTO Scores (city_id, city, HousingScore, CostOfLivingScore) VALUES (?,?,?,?)", (city_id, city, housing, living))
         count += 1
-
+    
     conn.commit()
 
 def fill_pop_table(cur, conn):
