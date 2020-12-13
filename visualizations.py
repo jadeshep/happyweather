@@ -9,6 +9,7 @@ import plotly.express as plt
 import plotly.graph_objects as go
 import plotly.express as px
 
+
 def main():
     """Takes no inputs and returns nothing. Selects data from the database in order to create visualizations.) """
     path = os.path.dirname(os.path.abspath(__file__))
@@ -28,14 +29,15 @@ def main():
         cscores_list.append(res[2])
         city_list.append(res[0])
     
-
-    fig = go.Figure(data = go.Scatter(
+    fig = go.Figure(go.Scatter(
         x=pop_list,
         y=hscores_list,
         marker=dict(color="blue", size=12),
         mode="markers",
-        text = city_list, marker_color = "blue"
+        text = city_list, 
+        marker_color = "blue"
     ))
+
     fig.update_traces(mode='markers', marker_line_width=2, marker_size=15)
     fig.update_layout(title='Population vs Housing Scores of U.S Cities', 
                         xaxis_title="Population", 
@@ -81,6 +83,21 @@ def main():
                         xaxis_title="Housing Scores", 
                         yaxis_title="Cost of Living Scores")
     fig2.show()
+
+    #Cost of Living in Different Cities
+    cur.execute("SELECT Weather.city, Weather.temp, Scores.CostOfLivingScore FROM Weather INNER JOIN Scores ON Weather.city = Scores.city")
+    barresults = cur.fetchall()
+    cities = []
+    costs = []
+
+    for res in barresults:
+        cities.append(res[0])
+        costs.append(res[2])
+    
+    barfig = go.Figure([go.Bar(y = costs, x = cities)])
+    barfig.update_traces(marker_color = "green", marker_line_color = "purple", marker_line_width = 2, opacity = .7)
+    barfig.update_layout(title_text = "Cities Costs of Living", xaxis_title = "Cities", yaxis_title = "Cost of Living Score")
+    barfig.show()
 
     
 if __name__ == "__main__":

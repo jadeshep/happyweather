@@ -27,7 +27,6 @@ def get_data_2(city):
     request_url = base_url.format(city)
     r = requests.get(request_url)
     dic = json.loads(r.text)
-    # print(dic)
     return dic
 
 def get_city_website_data(url):
@@ -54,7 +53,7 @@ def get_pop_website_data(url):
     L2 = []
     pattern = r'r">([\S]*)<\/d'
     r = requests.get(url).text
-    soup = BeautifulSoup(r, 'html.parser') #lxml
+    soup = BeautifulSoup(r, 'html.parser')
     x = soup.find('table', {'class':'goodOlTxt content'})
     links = x.find_all('tr')
     for i in links:
@@ -76,19 +75,15 @@ def setUpDatabase(db_name):
 
 def set_up_tables(cur, conn):
     #cur.execute("DROP TABLE IF EXISTS Weather")
-    # cur.execute("DROP TABLE IF EXISTS Scores")
-    # cur.execute("DROP TABLE IF EXISTS Population")
+    #cur.execute("DROP TABLE IF EXISTS Scores")
+    #cur.execute("DROP TABLE IF EXISTS Population")
     cur.execute("CREATE TABLE IF NOT EXISTS Weather (city_id INTEGER PRIMARY KEY, city TEXT, state TEXT, temp INTEGER)")
     cur.execute("CREATE TABLE IF NOT EXISTS Scores (city_id INTEGER PRIMARY KEY, city TEXT, HousingScore INTEGER, CostOfLivingScore INTEGER)")
     cur.execute("CREATE TABLE IF NOT EXISTS Population (city_id INTEGER PRIMARY KEY, city TEXT, population INTEGER)")
     conn.commit()
 
 def fill_weather_table(cur, conn):
-    # cur, conn = setUpDatabase('weather_data.db')
-    # conn = sqlite3.connect("weather_data.db")
-    # cur = conn.cursor()
 
-    #cur.execute("CREATE TABLE IF NOT EXISTS Weather (city_id INTEGER PRIMARY KEY, city TEXT, state TEXT, temp INTEGER)")
     city_state_list = [("anchorage", "Alaska"), ("asheville", "North Carolina"), ("atlanta", "Georgia"), ("austin", "Texas"), 
         ("birmingham", "Alabama"), ("boise", "Idaho"), ("buffalo", "New York"), ("charleston", "South Carolina"),
         ("chattanooga", "Tennessee"), ("chicago", "Illinois"), ("cincinnati", "Ohio"), ("cleveland", "Ohio"),
@@ -100,7 +95,7 @@ def fill_weather_table(cur, conn):
         ("philadelphia", "Pennsylvania"), ("phoenix", "Arizona"), ("pittsburgh", "Pennsylvania"), 
         ("providence", "Rhode Island"), ("raleigh", "North Carolina"), ("richmond", "Virginia"),
         ("rochester", "Minnesota"), ("salt-lake-city", "Utah"), ("san-antonio", "Texas"), ("san diego", "California"),
-        ("seattle", "Washington"), ("austin", "Texas"), ("charlotte", "North Carolina"), 
+        ("seattle", "Washington"), ("charlotte", "North Carolina"), 
         ("portland", "Oregon"), ("sacramento", "California"), ("oakland", "California"), ("tulsa", "Oklahoma"), 
         ("lexington", "Kentucky"), ("henderson", "Nevada"), ("greensboro", "North Carolina"), ("newark", "New Jersey"), 
         ("toledo", "Ohio"), ("laredo", "Texas"), ("madison", "Wisconsin"), ("scottsdale", "Arizona"), ("reno", "Nevada"), 
@@ -135,27 +130,24 @@ def fill_weather_table(cur, conn):
             print("error")
         time.sleep(10)
 
-        # x += 1
-        # cur.execute("INSERT OR IGNORE INTO Weather (city_id, city, state, temp) VALUES (?,?,?,?)", (city_id, city, state, temp))
-        # count += 1
     conn.commit()
 
 def fill_scores_table(cur, conn):
-    #cur.execute("CREATE TABLE IF NOT EXISTS Scores (city_id INTEGER PRIMARY KEY, city TEXT, HousingScore INTEGER, CostOfLivingScore INTEGER)")
+
     cities = ["anchorage", "asheville", "atlanta", "austin", "birmingham", "boise", "buffalo", "charleston", 
             "chattanooga", "chicago", "cincinnati", "cleveland", "colorado-springs", "columbus", "dallas", "denver",
             "detroit", "honolulu", "houston", "indianapolis", "jacksonville", "kansas-city", "knoxville", "las-vegas",
             "memphis", "miami", "milwaukee", "nashville", "new-orleans", "oklahoma-city",
-            "omaha", "orlando", "philadelphia", "phoenix", "pittsburgh", "portland-me", "portland-or", "providence", "raleigh", "richmond",
-            "rochester", "salt-lake-city", "san-antonio", "san-diego", "seattle", "st-louis", "amsterdam", "athens",
-            "bangkok", "barcelona", "beijing", "berlin", "brisbane", "brussels", "budapest", "cairo", "cambridge",
-            "casablanca", "cologne", "copenhagen", "delhi", "dubai", "dublin", "edinburgh", "edmonton", "florence",
-            "geneva", "gibraltar", "glasgow", "guadalajara", "guatemala-city", "hamburg", "havana", "helsinki",
-            "hong-kong", "istanbul", "jakarta", "kiev", "krakow", "kyoto", "lagos", "leeds", "leipzig", "lima", "lisbon",
-            "liverpool", "london", "luxembourg", "lyon", "madrid", "malaga", "manchester", "manila", "marseille", "melbourne",
-            "mexico-city", "milan", "montreal", "moscow", "mumbai", "nairobi", "naples", "nice", "ottawa", "seoul",
-             "shanghai", "singapore", "sydney", "toronto", "tokyo", "valencia", "vancouver", "vienna", "warsaw", "washington-dc", 
-             "winnipeg", "zurich", "tampa-bay-area", "seville", "ankara", "baku", "bern", "new-york", "nantes", "los-angeles",
+            "omaha", "orlando", "philadelphia", "phoenix", "pittsburgh", "portland-or", "providence", "raleigh", "richmond",
+            "rochester", "salt-lake-city", "san-antonio", "san-diego", "seattle", "st-louis",
+            "bangkok", "beijing", "brisbane", "budapest", "cairo", "cambridge",
+            "casablanca", "cologne", "delhi", "dubai","edmonton", "florence",
+            "geneva", "gibraltar", "guadalajara", "guatemala-city", "hamburg", "havana",
+            "istanbul", "jakarta", "krakow", "kyoto", "lagos", "leeds", "leipzig", "lima",
+            "liverpool", "luxembourg", "lyon", "madrid", "malaga", "manchester", "manila", "marseille", "melbourne",
+            "mexico-city", "milan", "nairobi", "naples", "nice", "ottawa",
+             "shanghai", "sydney", "valencia", "washington-dc", 
+             "winnipeg", "tampa-bay-area", "seville", "ankara", "baku", "bern", "nantes",
              "minsk", "oslo","perth", "oulu", "porto", "phuket"]
 
     list_of_dics = []
@@ -168,7 +160,7 @@ def fill_scores_table(cur, conn):
     x = 1
     count = len(city_list)
 
-    for x in range(10):
+    for x in range(25):
         x = count
         city_id = count + 1
         city = list_of_dics[count]['summary'].split(",")[0][3:]
@@ -243,6 +235,19 @@ def population_vs_housingscore_calc(cur, conn):
     print(mean_housing)
     return(mean_pops, mean_housing)
 
+def calc_weather_scores(cur, conn):
+    new_cities = []
+    tups = join_weather_and_scores(cur, conn)
+    for tup in tups:
+        cost_score = tup[2]
+        if cost_score >= 5:
+            new_cities.append(tup)
+    temps = []
+    for tup in new_cities:
+        temp = tup[1]
+        temps.append(temp)
+    average_temp = statistics.mean(temps)
+    return average_temp
 
 def write_data_to_file(filename, cur, conn):
     path = os.path.dirname(os.path.abspath(__file__)) + os.sep
@@ -251,32 +256,28 @@ def write_data_to_file(filename, cur, conn):
     outFile.write("Average Population of US cities: ")
     outFile.write(str(means[0]) + "\n")
     outFile.write("=======================================================================\n\n")
+
     outFile.write("Average Housing Score of US cities: ")
-    #need to specify that its only database cities?
     outFile.write(str(means[1]) + "\n")
     outFile.write("=======================================================================\n\n")
+
+    avg_temp = calc_weather_scores(cur, conn)
+    outFile.write("Average Temperature of US Cities with a Cost of Living Score of 5 or Higher: ")
+    outFile.write(str(avg_temp) + "\n")
+    outFile.write("=======================================================================\n\n")
+
     outFile.close()
 
-
 def main():
-    
-    # cur, conn = setUpDatabase('weather_data.db')
     conn = sqlite3.connect("/Users/jadeshepherd/Desktop/SI 206/happyweather/weather_data.db")
     cur = conn.cursor()
     set_up_tables(cur, conn)
     
-    #fill_weather_table(cur, conn)
-    #fill_scores_table(cur, conn)
-    #fill_pop_table(cur, conn)
-    join_scores_and_pop(cur, conn)
-    join_pop_and_weather(cur, conn)
-    join_weather_and_scores(cur, conn)
+    fill_weather_table(cur, conn)
+    fill_scores_table(cur, conn)
+    fill_pop_table(cur, conn)
 
-    population_vs_housingscore_calc(cur, conn)
-
-    write_data_to_file("pop_and_score.txt", cur, conn)
-    print("------------")
-    #unittest.main(verbosity=2) #put this last
+    write_data_to_file("calculations.txt", cur, conn)
 
 if __name__ == "__main__":
     main()
